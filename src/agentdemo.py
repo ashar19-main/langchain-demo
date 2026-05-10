@@ -8,6 +8,7 @@ from langchain.agents import create_agent
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_openai import ChatOpenAI
 
+from guardrails import build_agent_system_prompt, classify_user_prompt
 from tools import get_local_tools
 
 
@@ -86,18 +87,7 @@ async def create_agent_runner(model: str):
     agent = create_agent(
         model=chat_model,
         tools=tools,
-        system_prompt="""
-You are a simple helpful Dev Helper Agent.
-
-You can:
-- answer simple questions directly
-- use calculator for math
-- use list_project_files to inspect folders
-- use read_file to read text/code files
-
-Use tools only when needed.
-Keep answers simple and clear.
-""",
+        system_prompt=build_agent_system_prompt(),
     )
 
     return agent
@@ -190,6 +180,17 @@ async def run_agent_demo() -> int:
     args = parse_args()
 
     try:
+        prompt_classification = classify_user_prompt(args.prompt)
+        if not prompt_classification.allowed:
+            print_tool_call_summary([])
+
+            print("\nFinal Agent Response:")
+            print("-" * 60)
+            print(prompt_classification.refusal_message)
+            print("-" * 60)
+
+            return 0
+
         agent = await create_agent_runner(args.model)
 
         result = await agent.ainvoke(
