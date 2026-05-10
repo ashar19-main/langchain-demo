@@ -1,14 +1,19 @@
 import argparse
+import asyncio
 import os
 import sys
+from pathlib import Path
 
 from langchain.agents import create_agent
+from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_openai import ChatOpenAI
 
-from tools import get_tools
+from tools import get_local_tools
 
 
 DEFAULT_MODEL = "openai.gpt-oss-20b"
+MAX_TOOL_ARG_CHARS = 500
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 
 def parse_args():
@@ -54,9 +59,29 @@ def create_bedrock_chat_model(model: str):
     )
 
 
-def create_agent_runner(model: str):
+async def get_mcp_tools():
+    client = MultiServerMCPClient(
+        {
+            "project_files": {
+                "command": sys.executable,
+                "args": ["src/mcp_servers/project_files_server.py"],
+                "transport": "stdio",
+                "cwd": PROJECT_ROOT,
+            }
+        },
+        tool_name_prefix=False,
+    )
+
+    return await client.get_tools()
+
+
+async def get_agent_tools():
+    return get_local_tools() + await get_mcp_tools()
+
+
+async def create_agent_runner(model: str):
     chat_model = create_bedrock_chat_model(model)
-    tools = get_tools()
+    tools = await get_agent_tools()
 
     agent = create_agent(
         model=chat_model,
@@ -78,13 +103,96 @@ Keep answers simple and clear.
     return agent
 
 
-def main() -> int:
+def format_tool_args(args) -> str:
+    if args is None:
+        return ""
+
+    text = str(args)
+    if len(text) > MAX_TOOL_ARG_CHARS:
+        return text[:MAX_TOOL_ARG_CHARS] + "... [truncated]"
+
+    return text
+
+
+def extract_tool_calls(messages):
+    """
+    Extract tool calls from LangChain messages returned by the agent.
+    """
+    tool_calls = []
+    seen_tool_call_ids = set()
+
+    for message in messages:
+        for tool_call in getattr(message, "tool_calls", []) or []:
+            tool_call_id = tool_call.get("id")
+            if tool_call_id and tool_call_id in seen_tool_call_ids:
+                continue
+
+            name = tool_call.get("name")
+            args = tool_call.get("args")
+
+            if name:
+                tool_calls.append(
+                    {
+                        "id": tool_call_id,
+                        "name": name,
+                        "args": args,
+                    }
+                )
+
+            if tool_call_id:
+                seen_tool_call_ids.add(tool_call_id)
+
+        additional_kwargs = getattr(message, "additional_kwargs", {}) or {}
+        for raw_tool_call in additional_kwargs.get("tool_calls", []) or []:
+            tool_call_id = raw_tool_call.get("id")
+            if tool_call_id and tool_call_id in seen_tool_call_ids:
+                continue
+
+            function_call = raw_tool_call.get("function", {})
+            name = function_call.get("name")
+            args = function_call.get("arguments")
+
+            if name:
+                tool_calls.append(
+                    {
+                        "id": tool_call_id,
+                        "name": name,
+                        "args": args,
+                    }
+                )
+
+            if tool_call_id:
+                seen_tool_call_ids.add(tool_call_id)
+
+    return tool_calls
+
+
+def print_tool_call_summary(tool_calls):
+    print("\nTool Calls:")
+    print("-" * 60)
+
+    if not tool_calls:
+        print("No tool was called.")
+        print("-" * 60)
+        return
+
+    for index, tool_call in enumerate(tool_calls, start=1):
+        print(f"{index}. {tool_call['name']}")
+
+        formatted_args = format_tool_args(tool_call.get("args"))
+        if formatted_args:
+            print(f"   args: {formatted_args}")
+
+    print("-" * 60)
+
+
+async def run_agent_demo() -> int:
     args = parse_args()
 
     try:
-        agent = create_agent_runner(args.model)
+        agent = await create_agent_runner(args.model)
 
-        result = agent.invoke(
+        result = await agent.ainvoke(
             {
                 "messages": [
                     {
@@ -96,6 +204,9 @@ def main() -> int:
         )
 
         final_message = result["messages"][-1]
+        tool_calls = extract_tool_calls(result["messages"])
+
+        print_tool_call_summary(tool_calls)
 
         print("\nFinal Agent Response:")
         print("-" * 60)
@@ -108,6 +219,10 @@ def main() -> int:
         print("\nERROR:")
         print(str(ex))
         return 1
+
+
+def main() -> int:
+    return asyncio.run(run_agent_demo())
 
 
 if __name__ == "__main__":

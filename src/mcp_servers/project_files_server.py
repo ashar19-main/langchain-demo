@@ -1,9 +1,12 @@
 from pathlib import Path
 
-from langchain_core.tools import tool
+from fastmcp import FastMCP
 
 
-@tool
+mcp = FastMCP("project-files")
+
+
+@mcp.tool
 def list_project_files(directory: str = ".") -> str:
     """
     List files and folders in the specified directory.
@@ -15,6 +18,9 @@ def list_project_files(directory: str = ".") -> str:
         if not path.exists():
             return f"Directory does not exist: {directory}"
 
+        if not path.is_dir():
+            return f"Not a directory: {directory}"
+
         items = sorted([item.name for item in path.iterdir()])
 
         if not items:
@@ -24,3 +30,7 @@ def list_project_files(directory: str = ".") -> str:
 
     except Exception as ex:
         return f"Error listing files: {ex}"
+
+
+if __name__ == "__main__":
+    mcp.run(transport="stdio", show_banner=False, log_level="ERROR")

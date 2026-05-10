@@ -1,14 +1,14 @@
 from tools.calculator import calculator
-from tools.list_project_files import list_project_files
 from tools.read_file import read_file
 
 
-def get_tools():
+def get_local_tools():
     """
-    Return all tools to be registered with the agent.
+    Return local tools to be registered with the agent.
+
+    list_project_files is provided by the project-files MCP server.
     """
     return [
         calculator,
-        list_project_files,
         read_file,
     ]
