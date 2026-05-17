@@ -20,3 +20,5 @@ def test_build_agent_system_prompt_combines_prompt_sections_in_order():
     assert "calculator" in prompt
     assert "list_project_files" in prompt
     assert "read_file" in prompt
+    assert "search_and_download_image" in prompt
+    assert "royalty-free" in prompt

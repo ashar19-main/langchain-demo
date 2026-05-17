@@ -9,6 +9,7 @@ from guardrails.bedrock_guardrails import (
     BedrockGuardrailConfig,
     _get_blocked_message,
     _get_intervention_category,
+    _normalize_bedrock_output_message,
     evaluate_prompt_with_bedrock_guardrail,
     without_bedrock_bearer_token,
 )
@@ -173,6 +174,23 @@ def test_get_blocked_message_uses_abuse_message_for_abusive_categories(category)
 def test_get_blocked_message_uses_bedrock_output_or_default():
     assert _get_blocked_message({"outputs": [{"text": "custom blocked"}]}, "other") == "custom blocked"
     assert _get_blocked_message({"outputs": [{"text": ""}]}, "other") == BEDROCK_GUARDRAIL_REFUSAL_MESSAGE
+
+
+def test_get_blocked_message_normalizes_legacy_capability_refusal():
+    legacy_message = (
+        "I can't help with that request. This demo can only help with calculator, "
+        "project file listing, and approved project file reading."
+    )
+
+    assert _get_blocked_message({"outputs": [{"text": legacy_message}]}, "bedrock_sexual") == (
+        DEFAULT_REFUSAL_MESSAGE
+    )
+
+
+def test_normalize_bedrock_output_message_preserves_current_capability_refusal():
+    assert _normalize_bedrock_output_message(DEFAULT_REFUSAL_MESSAGE) == (
+        DEFAULT_REFUSAL_MESSAGE
+    )
 
 
 def _install_fake_boto3(monkeypatch, response_or_error):

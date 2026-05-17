@@ -6,11 +6,13 @@ SUPPORTED_CAPABILITIES = (
     "calculator",
     "project file listing",
     "approved project file reading",
+    "royalty-free image search",
 )
 
 DEFAULT_REFUSAL_MESSAGE = (
     "I can't help with that request. This demo can only help with calculator, "
-    "project file listing, and approved project file reading."
+    "project file listing, approved project file reading, and royalty-free "
+    "image search."
 )
 
 ABUSIVE_LANGUAGE_REFUSAL_MESSAGE = (
@@ -54,7 +56,9 @@ UNSAFE_PATTERNS = (
             r"\bharass\b",
             r"\bhate speech\b",
             r"\bmotherfucker\b",
+            r"\bracist\b",
             r"\bshit\b",
+            r"\bslur\b",
             r"\bthreaten\b",
             r"\buseless\b.*\b(fuck|fucking|cunt|bitch|asshole)\b",
             r"\bkill yourself\b",
@@ -130,6 +134,15 @@ SUPPORTED_INTENT_PATTERNS = (
             r"\d+\s*[\+\-\*/]\s*\d+",
         ),
         "The request is within the calculator capability.",
+    ),
+    (
+        "image_search",
+        (
+            r"\b(search|find|download|get)\b.*\b(image|images|picture|pictures|photo|photos)\b",
+            r"\b(image|picture|photo)\b.*\b(search|download)\b",
+            r"\bsearch_and_download_image\b",
+        ),
+        "The request is within the royalty-free image search capability.",
     ),
     (
         "list_project_files",

@@ -7,7 +7,7 @@ Simple Python demo for learning agentic AI development with LangChain and Amazon
 - A direct LLM demo using a custom LangChain `LLM` wrapper.
 - A simple LangChain agent demo using `ChatOpenAI`.
 - Local tools for basic math and file reading.
-- A FastMCP server for project file listing.
+- FastMCP servers for project file listing and Tavily image search/downloads.
 - Reusable guardrails for system prompting, prompt classification, and optional Amazon Bedrock Guardrails integration.
 - Windows command wrappers under `runnables/`.
 
@@ -43,6 +43,16 @@ Set these variables before running the demos:
 ```powershell
 $env:AWS_BEARER_TOKEN_BEDROCK = "your-bedrock-api-token"
 $env:OPENAI_BASE_URL = "your-bedrock-openai-compatible-base-url"
+$env:TAVILY_API_KEY = "your-tavily-api-key"
+```
+
+If you are running the `.cmd` wrapper from Command Prompt instead of
+PowerShell, set the variables in the same `cmd.exe` window:
+
+```cmd
+set AWS_BEARER_TOKEN_BEDROCK=your-bedrock-api-token
+set OPENAI_BASE_URL=your-bedrock-openai-compatible-base-url
+set TAVILY_API_KEY=your-tavily-api-key
 ```
 
 Optional Bedrock Guardrails variables:
@@ -71,6 +81,12 @@ runnables\llmdemo.cmd -p "Explain LangChain in three simple bullet points."
 
 ```powershell
 runnables\agentdemo.cmd -p "List the project files and explain what this app does."
+```
+
+Search for a royalty-free image and download the first Tavily image result:
+
+```powershell
+runnables\agentdemo.cmd -p "Find and download an image of a mountain lake at sunrise."
 ```
 
 ## Create a Bedrock Guardrail

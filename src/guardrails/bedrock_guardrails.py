@@ -14,6 +14,9 @@ BEDROCK_GUARDRAIL_REFUSAL_MESSAGE = (
     "I can't help with that request because it was blocked by the configured "
     "Amazon Bedrock Guardrail."
 )
+LEGACY_CAPABILITY_REFUSAL_PREFIX = (
+    "I can't help with that request. This demo can only help with calculator,"
+)
 
 BEDROCK_BEARER_TOKEN_ENV_VAR = "AWS_BEARER_TOKEN_BEDROCK"
 
@@ -123,9 +126,22 @@ def _get_blocked_message(response: dict[str, Any], category: str) -> str:
     for output in response.get("outputs", []) or []:
         output_text = output.get("text")
         if output_text:
-            return output_text
+            return _normalize_bedrock_output_message(output_text)
 
     return BEDROCK_GUARDRAIL_REFUSAL_MESSAGE
+
+
+def _normalize_bedrock_output_message(output_text: str) -> str:
+    """
+    Replace older remote Bedrock block messages with the current local wording.
+    """
+    if (
+        output_text.startswith(LEGACY_CAPABILITY_REFUSAL_PREFIX)
+        and "image search" not in output_text.lower()
+    ):
+        return DEFAULT_REFUSAL_MESSAGE
+
+    return output_text
 
 
 def _get_intervention_category(response: dict[str, Any]) -> str:
