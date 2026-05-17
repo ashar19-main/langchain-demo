@@ -6,24 +6,28 @@ Simple Python demo for learning agentic AI development with LangChain and Amazon
 
 - A direct LLM demo using a custom LangChain `LLM` wrapper.
 - A simple LangChain agent demo using `ChatOpenAI`.
-- Local tools for basic math, file listing, and file reading.
+- Local tools for basic math and file reading.
+- A FastMCP server for project file listing.
+- Reusable guardrails for system prompting, prompt classification, and optional Amazon Bedrock Guardrails integration.
 - Windows command wrappers under `runnables/`.
 
 ## Project layout
 
 ```text
 .
-├── runnables/
-│   ├── agentdemo.cmd
-│   └── llmdemo.cmd
-├── src/
-│   ├── CustomLangChainLLMWrapper.py
-│   ├── agentdemo.py
-│   ├── llmdemo.py
-│   └── tools.py
-├── poetry.lock
-├── pyproject.toml
-└── README.md
+|-- runnables/
+|   |-- agentdemo.cmd
+|   `-- llmdemo.cmd
+|-- src/
+|   |-- guardrails/
+|   |-- mcp_servers/
+|   |-- tools/
+|   |-- CustomLangChainLLMWrapper.py
+|   |-- agentdemo.py
+|   `-- llmdemo.py
+|-- poetry.lock
+|-- pyproject.toml
+`-- README.md
 ```
 
 ## Requirements
@@ -40,6 +44,16 @@ Set these variables before running the demos:
 $env:AWS_BEARER_TOKEN_BEDROCK = "your-bedrock-api-token"
 $env:OPENAI_BASE_URL = "your-bedrock-openai-compatible-base-url"
 ```
+
+Optional Bedrock Guardrails variables:
+
+```powershell
+$env:BEDROCK_GUARDRAIL_ID = "your-guardrail-id"
+$env:BEDROCK_GUARDRAIL_VERSION = "your-guardrail-version"
+$env:BEDROCK_GUARDRAIL_REGION = "your-guardrail-region"
+```
+
+When these variables are set, `agentdemo.py` evaluates the prompt with Amazon Bedrock Guardrails before running the local prompt classifier or invoking the agent.
 
 ## Install dependencies
 
@@ -59,6 +73,32 @@ runnables\llmdemo.cmd -p "Explain LangChain in three simple bullet points."
 runnables\agentdemo.cmd -p "List the project files and explain what this app does."
 ```
 
+## Create a Bedrock Guardrail
+
+The helper below creates a Bedrock Guardrail with high-strength content filters for harmful categories and a managed profanity word list:
+
+```powershell
+poetry run python src\guardrails\create_bedrock_guardrail.py --region ap-south-1
+```
+
+Copy the printed `BEDROCK_GUARDRAIL_ID`, `BEDROCK_GUARDRAIL_VERSION`, and `BEDROCK_GUARDRAIL_REGION` values into your environment before running the agent.
+
+## Run tests and view the report
+
+Run the unit test suite with the configured 90% coverage gate:
+
+```powershell
+poetry run pytest
+```
+
+Generate a standalone HTML test report with pass/fail details and coverage by file:
+
+```powershell
+poetry run python scripts\test_report_visualizer.py
+```
+
+Open the generated report at `reports\test-report\index.html`.
+
 ## Notes
 
-This is a learning project. The included file tools and calculator are intentionally simple and should be tightened before use in a production application.
+This is a learning project. The included file tools, calculator, MCP servers, and guardrails are intentionally simple and should be tightened before use in a production application.

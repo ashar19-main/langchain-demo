@@ -8,7 +8,11 @@ from langchain.agents import create_agent
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_openai import ChatOpenAI
 
-from guardrails import build_agent_system_prompt, classify_user_prompt
+from guardrails import (
+    build_agent_system_prompt,
+    classify_user_prompt,
+    evaluate_prompt_with_bedrock_guardrail,
+)
 from tools import get_local_tools
 
 
@@ -176,13 +180,39 @@ def print_tool_call_summary(tool_calls):
     print("-" * 60)
 
 
+def print_guardrail_summary(source: str, category: str):
+    print("\nGuardrail:")
+    print("-" * 60)
+    print(f"Source: {source}")
+    print(f"Category: {category}")
+    print("-" * 60)
+
+
 async def run_agent_demo() -> int:
     args = parse_args()
 
     try:
+        bedrock_guardrail_classification = evaluate_prompt_with_bedrock_guardrail(
+            args.prompt
+        )
+        if bedrock_guardrail_classification:
+            print_tool_call_summary([])
+            print_guardrail_summary(
+                "bedrock",
+                bedrock_guardrail_classification.category,
+            )
+
+            print("\nFinal Agent Response:")
+            print("-" * 60)
+            print(bedrock_guardrail_classification.refusal_message)
+            print("-" * 60)
+
+            return 0
+
         prompt_classification = classify_user_prompt(args.prompt)
         if not prompt_classification.allowed:
             print_tool_call_summary([])
+            print_guardrail_summary("local_regex", prompt_classification.category)
 
             print("\nFinal Agent Response:")
             print("-" * 60)

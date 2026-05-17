@@ -24,6 +24,7 @@ build/
 .ruff_cache/
 .coverage
 htmlcov/
+reports/
 
 # Editor and OS files
 .vscode/
